@@ -1,2 +1,5 @@
 /venv
 .env
+/src/test.py
+/secrets
+/test_parsed_data
