@@ -97,9 +97,11 @@ class RedditScraper:
             html_content = await page.content()
             soup = BeautifulSoup(html_content, 'html.parser')
 
-            heading_data = self.get_heading_data(soup)
+            heading_data = await self.get_heading_data(soup)
+
+            
             comments = [
-                comment for comment in self.get_comments_data(soup=soup, parent_post_id=heading_data.get('Id'))
+                comment async for comment in self.get_comments_data(soup=soup, parent_post_id=heading_data.get('Id'))
             ]
 
             if close_tab:
@@ -108,7 +110,8 @@ class RedditScraper:
             return {"PostData": heading_data, "CommentData": comments}
 
 
-    def get_comments_data(self, soup, parent_post_id=None):
+
+    async def get_comments_data(self, soup, parent_post_id=None):
         comment_divs = soup.find_all('div', class_='thing', attrs={'data-type': 'comment'})
 
         for comment_div in comment_divs:
@@ -131,11 +134,19 @@ class RedditScraper:
             if parent_div:
                 parent_data_fullname = parent_div['data-fullname']
 
-            yield ({"Type": "Comment", "CommentId": data_fullname, "AuthorId" : data_author_id, "Author": data_author, 'Permalink': data_permalink, 'Comment': comment_text,
-                    'ParentCommentId': parent_data_fullname, "ParentPostId": parent_post_id, "CreatedAt": timestamp})
+            yield {
+                "Type": "Comment",
+                "CommentId": data_fullname,
+                "AuthorId": data_author_id,
+                "Author": data_author,
+                'Permalink': data_permalink,
+                'Comment': comment_text,
+                'ParentCommentId': parent_data_fullname,
+                "ParentPostId": parent_post_id,
+                "CreatedAt": timestamp
+            }
 
-
-    def get_heading_data(self, soup):
+    async def get_heading_data(self, soup):
         data_fullname = soup.select_one('.thing')['data-fullname']
         permalink = soup.select_one('.title a')['href']
         timestamp = soup.select_one('.thing')['data-timestamp']
@@ -145,9 +156,15 @@ class RedditScraper:
         post_text = soup.select_one('.thing .md').get_text(
             strip=True) if soup.select_one('.thing .md') else None
 
-        return ({"Type": "Post", "PostId": data_fullname, "AuthorId" : data_author_id, "AuthorName": data_author, 'Permalink': permalink,
-                    'Comment': post_text, "CreatedAt": timestamp})
-
+        return {
+            "Type": "Post",
+            "PostId": data_fullname,
+            "AuthorId": data_author_id,
+            "AuthorName": data_author,
+            'Permalink': permalink,
+            'Comment': post_text,
+            "CreatedAt": timestamp
+        }
 
 if __name__ == '__main__':
     scraper = RedditScraper(MAX_CONCURRENT_TABS)
