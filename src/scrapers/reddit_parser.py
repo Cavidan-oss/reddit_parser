@@ -75,10 +75,13 @@ class RedditScraper:
             comment_link = BASE_URL + result.get('data-permalink')
             print(f"Parsing comments for - {comment_link}")
             comment_data = await self.parse_comments(comment_link, context, close_tab=True)
+            
+            for comment in  comment_data:
+                print(comment)
 
-            self.save_as_json(
-                comment_data, f"test_parsed_data/{result.get('data-fullname')}.json"
-            )
+            # self.save_as_json(
+            #     comment_data, f"test_parsed_data/{result.get('data-fullname')}.json"
+            # )
 
     async def parse_subredit(self, subreddit_path):
         async with async_playwright() as pw:
@@ -91,8 +94,6 @@ class RedditScraper:
             tasks = [self.process_comment(result, context) for result in self.results]
             await asyncio.gather(*tasks)
 
-            return self.results
-
     async def parse_comments(self, comment_path, context, close_tab=False):
         async with self.semaphore:
             page = await context.new_page()
@@ -102,14 +103,22 @@ class RedditScraper:
             soup = BeautifulSoup(html_content, 'html.parser')
 
             heading_data = self.get_heading_data(soup)
-            comments = [
-                comment for comment in self.get_comments_data(soup=soup, parent_post_id=heading_data.get('Id'))
-            ]
+            # comments = [
+            #     comment for comment in self.get_comments_data(soup=soup, parent_post_id=heading_data.get('Id'))
+            # ]
+
+            yield heading_data
+
+            get_comments_data_it = await self.get_comments_data(soup=soup, parent_post_id=heading_data.get('Id'))
+                                                                
+            for comments_data in get_comments_data_it:
+                yield heading_data
+
 
             if close_tab:
                 await page.close()
 
-            return {"PostData": heading_data, "CommentData": comments}
+            # return {"PostData": heading_data, "CommentData": comments}
         
 
 
