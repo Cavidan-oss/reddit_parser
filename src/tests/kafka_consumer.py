@@ -2,7 +2,7 @@ from kafka import KafkaConsumer
 
 # Replace these values with your Kafka bootstrap servers and topic
 bootstrap_servers = 'host.docker.internal:29092'
-kafka_topic = 'test'
+kafka_topic = 'test1'
 
 # Configuration for PLAINTEXT
 plaintext_config = {'bootstrap_servers': bootstrap_servers}

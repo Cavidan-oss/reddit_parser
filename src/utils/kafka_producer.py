@@ -3,14 +3,12 @@ from aiokafka import AIOKafkaProducer
 import asyncio
 
 class AsyncKafkaProducer:
-    def __init__(self, bootstrap_servers, event_loop):
+    def __init__(self, bootstrap_servers, loop=None):
         self.bootstrap_servers = bootstrap_servers
-
-        if not event_loop:
-            event_loop = asyncio.get_event_loop()
+        self.loop = loop or asyncio.get_event_loop()
 
         self.producer = AIOKafkaProducer(
-            loop=event_loop,
+            loop=self.loop,
             bootstrap_servers=self.bootstrap_servers,
         )
 

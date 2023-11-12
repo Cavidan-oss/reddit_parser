@@ -66,14 +66,7 @@ class RedditScraper:
             params = {"count": 25, "after": selected_elements[-1].get('data-fullname')}
             subpages = urljoin('/', '?' + urlencode(params))
 
-    async def process_post(self, result, context):
-        async with self.semaphore:
-            comment_link = BASE_URL + result.get('data-permalink')
-            print(f"Parsing comments for - {comment_link}")
-            comment_data = await self.parse_post_data(comment_link, context, close_tab=True)
 
-            return comment_data
-        
     async def parse_subreddit(self, subreddit_path , period = None):
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=False)
@@ -89,7 +82,15 @@ class RedditScraper:
                 yield result
 
             # return test
-        
+            
+    async def process_post(self, result, context):
+        async with self.semaphore:
+            comment_link = BASE_URL + result.get('data-permalink')
+            print(f"Parsing comments for - {comment_link}")
+            comment_data = await self.parse_post_data(comment_link, context, close_tab=True)
+
+            return comment_data
+                
     async def parse_post_data(self, comment_path, context, close_tab=False):
         async with self.semaphore:
             page = await context.new_page()
@@ -109,7 +110,7 @@ class RedditScraper:
                 await page.close()
 
 
-            return [heading_data] +comments
+            return [heading_data] + comments
 
 
     async def get_comments_data(self, soup, parent_post_id=None):
@@ -174,5 +175,4 @@ if __name__ == '__main__':
             # Process each result as it becomes available
             print(result)
 
-    if __name__ == '__main__':
-        asyncio.run(main())
+    asyncio.run(main())
