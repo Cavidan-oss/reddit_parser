@@ -5,31 +5,27 @@ from datetime import datetime, timezone
 from urllib.parse import urljoin, urlencode
 import json
 
-#MAX_CONCURRENT_TABS = 5
+MAX_CONCURRENT_TABS = 5
 PERIOD_TO_GET = 60 * 60 * 24 
 BASE_URL = "https://old.reddit.com"
-#SUBREDDIT_PATH = '/r/GRE/new/'
+SUBREDDIT_PATH = '/r/GRE/new/'
 
 
 class RedditScraper:
-    def __init__(self, max_current_tabs, *args, **kwargs):
+    def __init__(self, max_concurrent_tabs = 5):
         self.results = []
-        self.max_current_tabs = max_current_tabs
-        self.args= args
-        self.kwargs = kwargs
+        self.max_concurrent_tabs = max_concurrent_tabs
+        self.semaphore = asyncio.BoundedSemaphore(self.max_concurrent_tabs * 2)
 
-        self.semaphore = asyncio.BoundedSemaphore(self.max_current_tabs * 2)
 
     async def check_date_in_period(self, post_create_date, last_parsed_time, period):
         post_create_date_datetime = datetime.utcfromtimestamp(post_create_date // 1000)
         time_difference = (last_parsed_time - post_create_date_datetime).total_seconds()
         return time_difference <= period
-    
 
     def save_as_json(self, obj, filename, mode='w', indent=4):
         with open(filename, mode) as file:
             json.dump(obj, file, indent=indent)
-
 
     async def get_posts(self, page, subreddit_path, attributes_to_extract=['data-fullname', 'data-timestamp', 'data-permalink', 'data-promoted']):
         continue_parsing = True
@@ -70,20 +66,17 @@ class RedditScraper:
             params = {"count": 25, "after": selected_elements[-1].get('data-fullname')}
             subpages = urljoin('/', '?' + urlencode(params))
 
-    async def process_comment(self, result, context):
+    async def process_post(self, result, context):
         async with self.semaphore:
             comment_link = BASE_URL + result.get('data-permalink')
             print(f"Parsing comments for - {comment_link}")
-            comment_data = await self.parse_comments(comment_link, context, close_tab=True)
-            
-            for comment in  comment_data:
-                print(comment)
+            comment_data = await self.parse_post_data(comment_link, context, close_tab=True)
 
-            # self.save_as_json(
-            #     comment_data, f"test_parsed_data/{result.get('data-fullname')}.json"
-            # )
+            self.save_as_json(
+                comment_data, f"test_parsed_data/{result.get('data-fullname')}.json"
+            )
 
-    async def parse_subredit(self, subreddit_path):
+    async def parse_subreddit(self, subreddit_path , period = None):
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=False)
             context = await browser.new_context(no_viewport=True)
@@ -91,10 +84,12 @@ class RedditScraper:
 
             await self.get_posts(page, subreddit_path)
 
-            tasks = [self.process_comment(result, context) for result in self.results]
+            tasks = [self.process_post(result, context) for result in self.results]
             await asyncio.gather(*tasks)
 
-    async def parse_comments(self, comment_path, context, close_tab=False):
+            print(len(self.results))
+
+    async def parse_post_data(self, comment_path, context, close_tab=False):
         async with self.semaphore:
             page = await context.new_page()
             await page.goto(comment_path)
@@ -103,23 +98,14 @@ class RedditScraper:
             soup = BeautifulSoup(html_content, 'html.parser')
 
             heading_data = self.get_heading_data(soup)
-            # comments = [
-            #     comment for comment in self.get_comments_data(soup=soup, parent_post_id=heading_data.get('Id'))
-            # ]
-
-            yield heading_data
-
-            get_comments_data_it = await self.get_comments_data(soup=soup, parent_post_id=heading_data.get('Id'))
-                                                                
-            for comments_data in get_comments_data_it:
-                yield heading_data
-
+            comments = [
+                comment for comment in self.get_comments_data(soup=soup, parent_post_id=heading_data.get('Id'))
+            ]
 
             if close_tab:
                 await page.close()
 
-            # return {"PostData": heading_data, "CommentData": comments}
-        
+            return {"PostData": heading_data, "CommentData": comments}
 
 
     def get_comments_data(self, soup, parent_post_id=None):
@@ -145,8 +131,9 @@ class RedditScraper:
             if parent_div:
                 parent_data_fullname = parent_div['data-fullname']
 
-            yield ({"CommentId": data_fullname, "AuthorId" : data_author_id, "Author": data_author, 'Permalink': data_permalink, 'Comment': comment_text,
+            yield ({"Type": "Comment", "CommentId": data_fullname, "AuthorId" : data_author_id, "Author": data_author, 'Permalink': data_permalink, 'Comment': comment_text,
                     'ParentCommentId': parent_data_fullname, "ParentPostId": parent_post_id, "CreatedAt": timestamp})
+
 
     def get_heading_data(self, soup):
         data_fullname = soup.select_one('.thing')['data-fullname']
@@ -158,10 +145,10 @@ class RedditScraper:
         post_text = soup.select_one('.thing .md').get_text(
             strip=True) if soup.select_one('.thing .md') else None
 
-        return ({"PostId": data_fullname, "AuthorId" : data_author_id, "AuthorName": data_author, 'Permalink': permalink,
+        return ({"Type": "Post", "PostId": data_fullname, "AuthorId" : data_author_id, "AuthorName": data_author, 'Permalink': permalink,
                     'Comment': post_text, "CreatedAt": timestamp})
 
 
 if __name__ == '__main__':
-    scraper = RedditScraper(max_current_tabs = 6)
-    asyncio.run(scraper.parse_subredit('/r/GRE/new/'))
+    scraper = RedditScraper(MAX_CONCURRENT_TABS)
+    asyncio.run(scraper.parse_subreddit(SUBREDDIT_PATH))
