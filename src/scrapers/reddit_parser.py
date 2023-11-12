@@ -72,10 +72,8 @@ class RedditScraper:
             print(f"Parsing comments for - {comment_link}")
             comment_data = await self.parse_post_data(comment_link, context, close_tab=True)
 
-            self.save_as_json(
-                comment_data, f"test_parsed_data/{result.get('data-fullname')}.json"
-            )
-
+            return comment_data
+        
     async def parse_subreddit(self, subreddit_path , period = None):
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=False)
@@ -85,10 +83,13 @@ class RedditScraper:
             await self.get_posts(page, subreddit_path)
 
             tasks = [self.process_post(result, context) for result in self.results]
-            await asyncio.gather(*tasks)
 
-            print(len(self.results))
+            for future in asyncio.as_completed(tasks):
+                result = await future
+                yield result
 
+            # return test
+        
     async def parse_post_data(self, comment_path, context, close_tab=False):
         async with self.semaphore:
             page = await context.new_page()
@@ -107,8 +108,8 @@ class RedditScraper:
             if close_tab:
                 await page.close()
 
-            return {"PostData": heading_data, "CommentData": comments}
 
+            return [heading_data] +comments
 
 
     async def get_comments_data(self, soup, parent_post_id=None):
@@ -167,5 +168,11 @@ class RedditScraper:
         }
 
 if __name__ == '__main__':
-    scraper = RedditScraper(MAX_CONCURRENT_TABS)
-    asyncio.run(scraper.parse_subreddit(SUBREDDIT_PATH))
+    async def main():
+        scraper = RedditScraper(MAX_CONCURRENT_TABS)
+        async for result in scraper.parse_subreddit(SUBREDDIT_PATH):
+            # Process each result as it becomes available
+            print(result)
+
+    if __name__ == '__main__':
+        asyncio.run(main())
