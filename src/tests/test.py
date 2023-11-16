@@ -33,18 +33,18 @@
 
 # synchronous_function()
 
-import time
-import asyncio
+# import time
+# import asyncio
 
-def async_timing_decorator(func):
-    async def wrapper(*args, **kwargs):
-        start_time = time.time()
-        result = await func(*args, **kwargs)
-        end_time = time.time()
-        execution_time = end_time - start_time
-        print(f"{func.__name__} took {execution_time:.4f} seconds to execute.")
-        return result
-    return wrapper
+# def async_timing_decorator(func):
+#     async def wrapper(*args, **kwargs):
+#         start_time = time.time()
+#         result = await func(*args, **kwargs)
+#         end_time = time.time()
+#         execution_time = end_time - start_time
+#         print(f"{func.__name__} took {execution_time:.4f} seconds to execute.")
+#         return result
+#     return wrapper
 
 
 
@@ -115,7 +115,7 @@ kafka_topic = 'test'
 #     # Close the Kafka producer
 #     producer.close()
 
-from utils.kafka_producer import AsyncKafkaProducer
+# from utils.kafka_producer import AsyncKafkaProducer
 
 
 # from aiokafka import AIOKafkaProducer
@@ -138,3 +138,44 @@ from utils.kafka_producer import AsyncKafkaProducer
 #         await producer.stop()
 
 # asyncio.run(send_one())
+
+
+from pymongo import MongoClient
+from datetime import datetime
+
+# MongoDB connection details with username and password
+mongo_uri = "mongodb://admin:adminpass@localhost:27017/"
+database_name = "RedditParser"
+collection_name = "Test"
+
+# Sample data to insert
+data_to_insert = {
+    "title": "Sample Title",
+    "content": "This is a sample content.",
+    "author": "Test",
+    "created_at": datetime.utcnow()
+}
+
+def insert_into_mongodb(data):
+    try:
+        # Connect to MongoDB
+        client = MongoClient(mongo_uri)
+        database = client[database_name]
+        collection = database[collection_name]
+
+        # Insert the data into the collection
+        result = collection.insert_one(data)
+
+        # Print the inserted document's ID
+        print(f"Document inserted with ID: {result.inserted_id}")
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+    finally:
+        # Close the MongoDB connection
+        client.close()
+
+# Insert the sample data
+insert_into_mongodb(data_to_insert)
+

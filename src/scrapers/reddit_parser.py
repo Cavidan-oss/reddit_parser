@@ -27,7 +27,7 @@ class RedditScraper:
         with open(filename, mode) as file:
             json.dump(obj, file, indent=indent)
 
-    async def get_posts(self, page, subreddit_path, attributes_to_extract=['data-fullname', 'data-timestamp', 'data-permalink', 'data-promoted']):
+    async def get_posts(self, page, subreddit_path, period_to_get, attributes_to_extract=['data-fullname', 'data-timestamp', 'data-permalink', 'data-promoted']):
         continue_parsing = True
         subpages = ''
 
@@ -50,7 +50,7 @@ class RedditScraper:
 
             for row in selected_elements:
                 is_included_in_period = await self.check_date_in_period(
-                    int(row['data-timestamp']), datetime.now(), PERIOD_TO_GET
+                    int(row['data-timestamp']), datetime.now(), period_to_get
                 )
 
                 if row.get('data-promoted') == 'true':
@@ -73,7 +73,7 @@ class RedditScraper:
             context = await browser.new_context(no_viewport=True)
             page = await context.new_page()
 
-            await self.get_posts(page, subreddit_path)
+            await self.get_posts(page, subreddit_path, period or PERIOD_TO_GET)
 
             tasks = [self.process_post(result, context) for result in self.results]
 

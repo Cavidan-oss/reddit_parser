@@ -18,12 +18,11 @@ async def main(subreddit):
     kafka_producer = AsyncKafkaProducer(f"{env_vars.get('KAFKA_HOST')}:{env_vars.get('KAFKA_PORT')}")
     await kafka_producer.start()
 
-    async for result in scraper.parse_subreddit(subreddit):
+    async for result in scraper.parse_subreddit(subreddit, period=60*60*24):
         # Process each result as it becomes available
 
         for post_data in result:
             await kafka_producer.push_to_kafka('test1', post_data)            
-            await asyncio.sleep(0.2)
 
         
     await kafka_producer.stop()
