@@ -10,12 +10,14 @@ env_vars = dotenv_values(".env")# Replace these values with your Kafka bootstrap
 try:
 
     consumer = KafkaConsumer(
-        env_vars.get('KAFKA_TOPIC'),
-        group_id='my_consumer_group',
+        'test1',
+        group_id='consumers',
         bootstrap_servers=f"{env_vars.get('KAFKA_HOST')}:{env_vars.get('KAFKA_PORT')}",
         auto_offset_reset='earliest',  # Start consuming from the beginning of the topic
         # Other configuration options...
     )   
+
+    
     mongo_client =  MongoDBHelper(conn_host=env_vars.get('MONGO_HOST'),
                                   username = env_vars.get('MONGO_USERNAME'),
                                   password = env_vars.get('MONGO_PASSWORD'),
@@ -36,6 +38,8 @@ try:
             mongo_client.insert_one(json_message, 'Posts' )
             
 except Exception as e:
+
+    raise e
     print(e)
 finally:
     # Close the Kafka consumer

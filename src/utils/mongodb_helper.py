@@ -77,25 +77,25 @@ class MongoDBHelper:
 
 
 
-mongo_instance = MongoDBHelper(conn_host='localhost', username = 'admin', password = 'adminpass', database_name = 'RedditParser')
-data_to_insert = {
-    "title": "Sample Title",
-    "content": "This is a sample content.",
-    "author": "Test",
-    "created_at": datetime.utcnow()
-}
+# mongo_instance = MongoDBHelper(conn_host='localhost', username = 'admin', password = 'adminpass', database_name = 'RedditParser')
+# data_to_insert = {
+#     "title": "Sample Title",
+#     "content": "This is a sample content.",
+#     "author": "Test",
+#     "created_at": datetime.utcnow()
+# }
 
 
-mongo_instance.insert_one(data_to_insert, 'Test' )
+# mongo_instance.insert_one(data_to_insert, 'Test' )
 
-test_data = mongo_instance.read_collection('Test')
+# test_data = mongo_instance.read_collection('Test')
 
-# print(test_data)
+# # print(test_data)
 
 
-# deleted = mongo_instance.delete_document('Test', {'_id' : ObjectId('65531e8020f5887271d8def7')})
+# # deleted = mongo_instance.delete_document('Test', {'_id' : ObjectId('65531e8020f5887271d8def7')})
 
-print(deleted)
+# print(deleted)
 
-test_data = mongo_instance.read_collection('Test')
+# test_data = mongo_instance.read_collection('Test')
 
