@@ -3,12 +3,13 @@ from utils.mongodb_helper import MongoDBHelper
 from dotenv import dotenv_values
 import json
 
-env_vars = dotenv_values(".env")# Replace these values with your Kafka bootstrap servers and topic
+env_vars = dotenv_values(".env") # Replace these values with your Kafka bootstrap servers and topic
+print(env_vars)
 
 # Configuration for PLAINTEXT
-
+consumer = None
 try:
-
+    print(f"{env_vars.get('KAFKA_HOST')}:{env_vars.get('KAFKA_PORT')}")
     consumer = KafkaConsumer(
         'test1',
         group_id='consumers',
@@ -43,4 +44,5 @@ except Exception as e:
     print(e)
 finally:
     # Close the Kafka consumer
-    consumer.close()
+    if consumer:
+        consumer.close()

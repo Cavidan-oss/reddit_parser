@@ -1,5 +1,3 @@
-
-
 import asyncpg
 import asyncio
 from datetime import datetime
@@ -9,10 +7,10 @@ env_vars = dotenv_values(".env")
 
 check_for_schedule_existance = """SELECT s."SubredditId", ss."LastParsedDate", ss."LastCheckStatus" FROM "Reddit"."Subreddit" s
 LEFT JOIN "Reddit"."SubredditSchedule" ss ON s."SubredditId" = ss."SubredditId"
-WHERE s."SubrredditPath" =  '{subreddit_path}' ORDER BY s."SubredditId" desc """
+WHERE s."SubredditPath" =  '{subreddit_path}' ORDER BY s."SubredditId" desc """
 
 
-insert_subreddit = """ INSERT INTO "Reddit"."Subreddit"("SubrredditPath") VALUES ('{subreddit_path}') returning "SubredditId" """
+insert_subreddit = """ INSERT INTO "Reddit"."Subreddit"("SubredditPath") VALUES ('{subreddit_path}') returning "SubredditId" """
 
 insert_subreddit_schedule = """ INSERT INTO "Reddit"."SubredditSchedule"("SubredditId", "LastParsedDate") VALUES({subreddit_id}, Null )  """
 
@@ -22,8 +20,6 @@ update_end_date_query = """ UPDATE "Reddit"."SubredditSchedule" SET "LastParsedD
 
 
 class AsyncPostgreSQLHelper:
-
-
     
     def __init__(self, dbname, user, password, host="localhost", port=5432):
         self.dbname = dbname if dbname else ''
@@ -110,6 +106,7 @@ class AsyncPostgreSQLHelper:
             print("Query executed successfully")
         except Exception as e:
             print(f"Error executing query: {e}")
+            
 
     async def fetch_data(self, query, *params):
         try:

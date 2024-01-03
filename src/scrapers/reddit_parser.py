@@ -67,21 +67,24 @@ class RedditScraper:
             subpages = urljoin('/', '?' + urlencode(params))
 
 
-    async def parse_subreddit(self, subreddit_path , period = None):
+    async def parse_subreddit(self, subreddit_path, period=None):
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=False)
             context = await browser.new_context(no_viewport=True)
             page = await context.new_page()
 
-            await self.get_posts(page, subreddit_path, period or PERIOD_TO_GET)
+            try:
+                await self.get_posts(page, subreddit_path, period or PERIOD_TO_GET)
 
-            tasks = [self.process_post(result, context) for result in self.results]
+                tasks = [self.process_post(result, context) for result in self.results]
 
-            for future in asyncio.as_completed(tasks):
-                result = await future
-                yield result
+                for future in asyncio.as_completed(tasks):
+                    result = await future
+                    yield result
 
-            # return test
+            finally:
+                await browser.close()
+
             
     async def process_post(self, result, context):
         async with self.semaphore:
