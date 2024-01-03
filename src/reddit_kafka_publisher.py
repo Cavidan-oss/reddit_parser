@@ -77,17 +77,19 @@ class RedditKafkaProducer(RedditScraper):
 
 
         finally:
-            await self.kafka_producer.stop()
-            await self.postgres_helper.close_connection()
-
+            if self.kafka_producer:
+                await self.kafka_producer.stop()
+            if self.postgres_helper:
+                await self.postgres_helper.close_connection()
 
     async def parse_and_publish(self, subreddit_path, kafka_topic, period):
 
         async for result in self.parse_subreddit(subreddit_path, period=period):
             # Process each result as it becomes available
             for post_data in result:
+                post_data.update({'SubredditName': subreddit_path})
                 await self.kafka_producer.push_to_kafka(kafka_topic, post_data)     
-                print(post_data)
+
 
     async def get_kafka_connection(self):
         try:
@@ -117,6 +119,7 @@ class RedditKafkaProducer(RedditScraper):
                 self._postgres_connection_status = True
 
             return self.async_postgres_helper
+        
         except Exception as e:
             print("Failed to Connect to PostgreSQL")
             raise e
@@ -126,4 +129,4 @@ if __name__ == '__main__':
 
     producer =  RedditKafkaProducer()
 
-    asyncio.run(producer.subreddit_kafka_producer('r/gradadmissions/', period=60 * 60* 5))
+    asyncio.run(producer.subreddit_kafka_producer('r/GRE/', period=60 * 60* 12))

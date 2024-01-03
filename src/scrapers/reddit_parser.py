@@ -67,25 +67,22 @@ class RedditScraper:
             subpages = urljoin('/', '?' + urlencode(params))
 
 
-    async def parse_subreddit(self, subreddit_path, period=None):
+    async def parse_subreddit(self, subreddit_path , period = None):
         async with async_playwright() as pw:
             browser = await pw.chromium.launch(headless=False)
             context = await browser.new_context(no_viewport=True)
             page = await context.new_page()
 
-            try:
-                await self.get_posts(page, subreddit_path, period or PERIOD_TO_GET)
+            await self.get_posts(page, subreddit_path, period or PERIOD_TO_GET)
 
-                tasks = [self.process_post(result, context) for result in self.results]
+            tasks = [self.process_post(result, context) for result in self.results]
 
-                for future in asyncio.as_completed(tasks):
-                    result = await future
-                    yield result
 
-            finally:
-                await browser.close()
+            for future in asyncio.as_completed(tasks):
+                result = await future
+                yield result
 
-            
+
     async def process_post(self, result, context):
         async with self.semaphore:
             comment_link = BASE_URL + result.get('data-permalink')
@@ -103,7 +100,8 @@ class RedditScraper:
             soup = BeautifulSoup(html_content, 'html.parser')
 
             heading_data = await self.get_heading_data(soup)
-
+            print(heading_data)
+            print(heading_data.get('Id'))
             
             comments = [
                 comment async for comment in self.get_comments_data(soup=soup, parent_post_id=heading_data.get('Id'))
@@ -141,7 +139,7 @@ class RedditScraper:
 
             yield {
                 "Type": "Comment",
-                "CommentId": data_fullname,
+                "Id": data_fullname,
                 "AuthorId": data_author_id,
                 "Author": data_author,
                 'Permalink': data_permalink,
@@ -163,7 +161,7 @@ class RedditScraper:
 
         return {
             "Type": "Post",
-            "PostId": data_fullname,
+            "Id": data_fullname,
             "AuthorId": data_author_id,
             "AuthorName": data_author,
             'Permalink': permalink,
